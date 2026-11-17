@@ -547,16 +547,105 @@
       transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
     }
 
-    /* Notes */
-    .notes-cell {
-      max-width: 200px;
-      color: var(--text2);
+    /* ── Editing window visualizer ── */
+    .ew-block { min-width: 150px; }
+    .ew-label { font-size: 10px; color: var(--muted); margin-bottom: 5px; letter-spacing: 0.3px; }
+    .ew-track { display: flex; gap: 2px; align-items: center; flex-wrap: wrap; }
+    .ew-pos {
+      width: 20px; height: 20px;
+      border-radius: 4px;
+      border: 1px solid var(--border2);
+      background: var(--surface3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-family: var(--mono);
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .ew-pos.active {
+      background: rgba(255,179,64,0.15);
+      border-color: rgba(255,179,64,0.45);
+      color: var(--warn);
+      font-weight: 700;
+      box-shadow: 0 0 5px rgba(255,179,64,0.25);
+    }
+    .ew-pos.edited {
+      background: rgba(57,255,135,0.2);
+      border-color: rgba(57,255,135,0.6);
+      color: var(--accent2);
+      font-weight: 700;
+      box-shadow: 0 0 7px rgba(57,255,135,0.4);
+      font-size: 11px;
+    }
+
+    /* ── Remarks ── */
+    .remarks-cell { max-width: 200px; }
+    .remarks-preview {
       font-size: 12px;
+      color: var(--text2);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      cursor: default;
+      cursor: pointer;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
+    .remarks-preview:hover { border-color: var(--border2); background: var(--surface3); color: var(--text); }
+    .remarks-preview .rm-icon { font-size: 11px; flex-shrink: 0; }
+    .remarks-preview.empty { color: var(--muted); font-style: italic; cursor: default; }
+    .remarks-preview.empty:hover { border-color: transparent; background: none; }
+
+    /* ── Remarks popup ── */
+    .remarks-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(8px);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+    }
+    .remarks-modal-overlay.open { display: flex; }
+    .remarks-modal {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 16px;
+      width: 500px;
+      max-width: 94vw;
+      padding: 26px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,212,255,0.06);
+      animation: modal-in 0.22s cubic-bezier(0.16,1,0.3,1);
+    }
+    .remarks-modal-hdr {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 12px;
+    }
+    .remarks-modal-title { font-size: 15px; font-weight: 700; color: var(--text); }
+    .remarks-modal-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .remarks-body {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 16px;
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.65;
+      min-height: 80px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .remarks-body.empty { color: var(--muted); font-style: italic; }
 
     /* Actions */
     .row-actions { display: flex; gap: 4px; }
@@ -934,7 +1023,7 @@
             <th onclick="sortBy('nt')">Nt Edited<span class="arrow">↕</span></th>
             <th onclick="sortBy('status')">Outcome<span class="arrow">↕</span></th>
             <th onclick="sortBy('het')">Heteroplasmy<span class="arrow">↕</span></th>
-            <th>Notes</th>
+            <th>Remarks</th>
             <th></th>
           </tr>
         </thead>
@@ -1013,12 +1102,13 @@
           <input type="text" id="f-right" class="mono-f" placeholder="e.g. GCTTAAACGTTTCCAGTG…" />
         </div>
         <div class="form-group">
-          <label>Editing Window (e.g. 4–8)</label>
-          <input type="text" id="f-window" placeholder="e.g. 4–8" />
+          <label>Editing Window <span style="color:var(--muted);font-weight:400;font-size:10px">(e.g. 4–8)</span></label>
+          <input type="text" id="f-window" placeholder="e.g. 4–8" oninput="previewWindow()" />
+          <div id="window-preview" style="margin-top:7px"></div>
         </div>
         <div class="form-group">
-          <label>Nucleotide Edited (e.g. C5→T)</label>
-          <input type="text" id="f-nt" placeholder="e.g. C5→T, A6→G" />
+          <label>Nucleotide Edited <span style="color:var(--muted);font-weight:400;font-size:10px">(e.g. C5→T)</span></label>
+          <input type="text" id="f-nt" placeholder="e.g. C5→T, A6→G" oninput="previewWindow()" />
         </div>
       </div>
     </div>
@@ -1040,8 +1130,9 @@
           <input type="number" id="f-het" min="0" max="100" step="0.1" placeholder="e.g. 42.5" />
         </div>
         <div class="form-group full">
-          <label>Notes / Context</label>
-          <textarea id="f-notes" placeholder="Cell line, injection stage, ONT confirmation, caveats, citations…"></textarea>
+          <label>Remarks</label>
+          <textarea id="f-notes" rows="4" placeholder="Cell line, injection stage, sequencing method, ONT confirmation, caveats, citations, next steps…"></textarea>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px">💬 Click any row's remarks in the table to expand full text.</div>
         </div>
       </div>
     </div>
@@ -1162,6 +1253,27 @@
     return ORG_EMOJI[org.toLowerCase()] || '🧪';
   }
 
+  // ━━━━━━━━━━ Editing window visualizer ━━━━━━━━━━
+  function editWindowHTML(windowStr, ntStr) {
+    if (!windowStr) return `<span style="color:var(--muted)">—</span>`;
+    const m = windowStr.replace('–','-').replace('—','-').match(/^(\d+)[^\d]+(\d+)$/);
+    if (!m) return `<span class="ew-range" style="font-family:var(--mono);font-size:12px;color:var(--warn)">${windowStr}</span>`;
+    const start = parseInt(m[1]), end = parseInt(m[2]);
+    let editedPos = null;
+    if (ntStr) { const pm = ntStr.match(/[A-Za-z](\d+)/); if (pm) editedPos = parseInt(pm[1]); }
+    const showFrom = Math.max(1, start - 1);
+    const showTo   = Math.min(end + 1, start + 10);
+    let boxes = '';
+    for (let i = showFrom; i <= showTo; i++) {
+      const inWindow = i >= start && i <= end;
+      const isEdited = editedPos !== null && i === editedPos;
+      const cls = isEdited ? 'ew-pos edited' : inWindow ? 'ew-pos active' : 'ew-pos';
+      const label = isEdited ? '★' : i;
+      boxes += `<div class="${cls}" title="Pos ${i}${inWindow?' (window)':''}${isEdited?' ← edited':''}">${label}</div>`;
+    }
+    return `<div class="ew-block"><div class="ew-label">window ${start}–${end}</div><div class="ew-track">${boxes}</div></div>`;
+  }
+
   function rowHTML(e) {
     const sc = e.status === 'Worked' ? 'status-worked' : e.status === 'Partial' ? 'status-partial' : 'status-failed';
     const het = (e.het != null && e.het !== '') ? parseFloat(e.het) : null;
@@ -1170,12 +1282,15 @@
          <div class="het-track"><div class="het-fill" style="width:${het}%"></div></div></div>`
       : `<span style="color:var(--muted);font-size:12px">—</span>`;
 
-    const tl = e.left  ? (e.left.length  > 16 ? `<span title="${e.left}">${e.left.slice(0,14)}…</span>`   : e.left)  : '—';
+    const tl  = e.left  ? (e.left.length  > 16 ? `<span title="${e.left}">${e.left.slice(0,14)}…</span>`   : e.left)  : '—';
     const tr_ = e.right ? (e.right.length > 16 ? `<span title="${e.right}">${e.right.slice(0,14)}…</span>` : e.right) : '—';
-
-    const initials = (e.user || '?').slice(0,2).toUpperCase();
-    const notesTxt = (e.notes || '');
-    const notesDisplay = notesTxt.length > 44 ? notesTxt.slice(0,42) + '…' : notesTxt;
+    const initials  = (e.user || '?').slice(0,2).toUpperCase();
+    const notesTxt  = (e.notes || '');
+    const hasNotes  = notesTxt.trim().length > 0;
+    const rmPreview = notesTxt.length > 32 ? notesTxt.slice(0,30) + '…' : notesTxt;
+    const remarksHTML = hasNotes
+      ? `<div class="remarks-preview has-content" onclick="openRemarks(${e.id})"><span class="rm-icon">💬</span>${rmPreview}</div>`
+      : `<div class="remarks-preview empty">—</div>`;
 
     return `<tr>
       <td class="row-num">${e.id}</td>
@@ -1189,15 +1304,41 @@
           <div class="seq-row"><span class="seq-label">R</span><span class="seq-val" title="${e.right||''}">${tr_}</span></div>
         </div>
       </td>
-      <td class="mono" style="color:var(--text2)">${e.window || '—'}</td>
+      <td>${editWindowHTML(e.window, e.nt)}</td>
       <td><span class="nt-pill">${e.nt || '—'}</span></td>
       <td><span class="status-badge ${sc}"><span class="status-dot"></span>${e.status}</span></td>
       <td class="het-block">${hetHTML}</td>
-      <td><div class="notes-cell" title="${notesTxt.replace(/"/g,"'")}">${notesDisplay || '<span style="color:var(--muted)">—</span>'}</div></td>
+      <td class="remarks-cell">${remarksHTML}</td>
       <td><div class="row-actions">
         <button class="action-btn delete" onclick="deleteEntry(${e.id})" title="Delete">🗑</button>
       </div></td>
     </tr>`;
+  }
+
+  // ━━━━━━━━━━ Remarks popup ━━━━━━━━━━
+  function openRemarks(id) {
+    const e = entries.find(x => x.id === id);
+    if (!e) return;
+    document.getElementById('rm-title').textContent = `${e.gene || 'Entry'} — Remarks`;
+    document.getElementById('rm-meta').textContent  = [e.user, e.organism, e.arch].filter(Boolean).join(' · ');
+    const body = document.getElementById('rm-body');
+    if (e.notes && e.notes.trim()) {
+      body.textContent = e.notes;
+      body.className = 'remarks-body';
+    } else {
+      body.textContent = 'No remarks recorded for this entry.';
+      body.className = 'remarks-body empty';
+    }
+    document.getElementById('remarks-modal').classList.add('open');
+  }
+  function closeRemarks() { document.getElementById('remarks-modal').classList.remove('open'); }
+  document.getElementById('remarks-modal').addEventListener('click', ev => { if (ev.target.id === 'remarks-modal') closeRemarks(); });
+
+  // ━━━━━━━━━━ Live window preview in modal ━━━━━━━━━━
+  function previewWindow() {
+    const w  = document.getElementById('f-window').value;
+    const nt = document.getElementById('f-nt').value;
+    document.getElementById('window-preview').innerHTML = w ? editWindowHTML(w, nt) : '';
   }
 
   // ━━━━━━━━━━ Sort ━━━━━━━━━━
@@ -1281,5 +1422,19 @@
   // ━━━━━━━━━━ Init ━━━━━━━━━━
   renderTable();
 </script>
+
+<!-- Remarks popup -->
+<div class="remarks-modal-overlay" id="remarks-modal">
+  <div class="remarks-modal">
+    <div class="remarks-modal-hdr">
+      <div>
+        <div class="remarks-modal-title" id="rm-title">Remarks</div>
+        <div class="remarks-modal-meta" id="rm-meta"></div>
+      </div>
+      <button class="modal-close" onclick="closeRemarks()">✕</button>
+    </div>
+    <div class="remarks-body" id="rm-body"></div>
+  </div>
+</div>
 </body>
 </html>

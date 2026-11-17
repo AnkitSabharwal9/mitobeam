@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MitoBEAM — Mitochondrial Base Editor Activity Map</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #05070f;
+      --bg2: #090d1a;
+      --surface: #0e1424;
+      --surface2: #131929;
+      --surface3: #182035;
+      --border: #1e2d4a;
+      --border2: #243558;
+      --accent: #00d4ff;
+      --accent-dim: rgba(0,212,255,0.12);
+      --accent2: #39ff87;
+      --accent2-dim: rgba(57,255,135,0.1);
+      --warn: #ffb340;
+      --warn-dim: rgba(255,179,64,0.1);
+      --danger: #ff4d6d;
+      --danger-dim: rgba(255,77,109,0.1);
+      --purple: #a78bfa;
+      --purple-dim: rgba(167,139,250,0.1);
+      --text: #e2eaff;
+      --text2: #8fa3c8;
+      --muted: #4a6080;
+      --radius: 10px;
+      --radius-lg: 16px;
+      --font: 'Inter', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+      --glow-cyan: 0 0 20px rgba(0,212,255,0.25), 0 0 60px rgba(0,212,255,0.08);
+      --glow-green: 0 0 20px rgba(57,255,135,0.2), 0 0 60px rgba(57,255,135,0.06);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ━━━━━━━━━━━━━━━━━━━━ ANIMATED BG ━━━━━━━━━━━━━━━━━━━━ */
+    .bg-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      animation: orb-drift 18s ease-in-out infinite alternate;
+    }
+    .orb1 { width: 600px; height: 600px; background: rgba(0,212,255,0.04); top: -200px; left: -100px; animation-delay: 0s; }
+    .orb2 { width: 500px; height: 500px; background: rgba(57,255,135,0.04); bottom: -150px; right: -100px; animation-delay: -6s; }
+    .orb3 { width: 400px; height: 400px; background: rgba(167,139,250,0.03); top: 40%; left: 50%; animation-delay: -12s; }
+    @keyframes orb-drift {
+      0% { transform: translate(0,0) scale(1); }
+      100% { transform: translate(40px, 30px) scale(1.1); }
+    }
+
+    /* Grid lines */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ━━━━━━━━━━━━━━━━━━━━ HEADER ━━━━━━━━━━━━━━━━━━━━ */
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 0 40px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(5,7,15,0.85);
+      backdrop-filter: blur(20px);
+    }
+    .header-inner {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 20px 0;
+    }
+    .logo-block {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .mito-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #031a2e, #0a2a1a);
+      border: 1px solid var(--border2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: var(--glow-cyan);
+      animation: pulse-icon 3s ease-in-out infinite;
+    }
+    @keyframes pulse-icon {
+      0%,100% { box-shadow: var(--glow-cyan); }
+      50% { box-shadow: 0 0 30px rgba(0,212,255,0.4), 0 0 80px rgba(0,212,255,0.12); }
+    }
+    .brand h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+    }
+    .brand .tagline {
+      font-size: 11px;
+      color: var(--text2);
+      letter-spacing: 0.3px;
+      margin-top: 1px;
+    }
+    .brand .tagline span {
+      color: var(--muted);
+      margin: 0 4px;
+    }
+
+    /* Header right */
+    .header-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .entry-counter {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 12px;
+      color: var(--text2);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .entry-counter .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent2);
+      box-shadow: 0 0 6px var(--accent2);
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .entry-counter strong { color: var(--accent); font-family: var(--mono); }
+
+    /* ━━━━━━━━━━━━━━━━━━━━ HERO BAND ━━━━━━━━━━━━━━━━━━━━ */
+    .hero-band {
+      position: relative;
+      z-index: 5;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(0,212,255,0.03) 0%, transparent 100%);
+      padding: 28px 40px;
+    }
+    .hero-inner {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      flex: 1;
+      min-width: 130px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius-lg);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .stat-card:hover::before { opacity: 1; }
+    .stat-card.total { border-color: rgba(0,212,255,0.2); }
+    .stat-card.total::before { background: var(--accent-dim); }
+    .stat-card.total .num { color: var(--accent); }
+    .stat-card.worked { border-color: rgba(57,255,135,0.2); }
+    .stat-card.worked::before { background: var(--accent2-dim); }
+    .stat-card.worked .num { color: var(--accent2); }
+    .stat-card.failed { border-color: rgba(255,77,109,0.2); }
+    .stat-card.failed::before { background: var(--danger-dim); }
+    .stat-card.failed .num { color: var(--danger); }
+    .stat-card.rate { border-color: rgba(255,179,64,0.2); }
+    .stat-card.rate::before { background: var(--warn-dim); }
+    .stat-card.rate .num { color: var(--warn); }
+    .stat-card.partial { border-color: rgba(167,139,250,0.2); }
+    .stat-card.partial::before { background: var(--purple-dim); }
+    .stat-card.partial .num { color: var(--purple); }
+    .stat-card .icon { font-size: 20px; margin-bottom: 6px; }
+    .stat-card .num { font-size: 28px; font-weight: 800; font-family: var(--mono); line-height: 1; }
+    .stat-card .label { color: var(--text2); font-size: 11px; margin-top: 4px; letter-spacing: 0.3px; }
+    .stat-card .sub { color: var(--muted); font-size: 10px; margin-top: 2px; }
+
+    /* ━━━━━━━━━━━━━━━━━━━━ MAIN ━━━━━━━━━━━━━━━━━━━━ */
+    main {
+      position: relative;
+      z-index: 5;
+      padding: 28px 40px 60px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    /* ━━━━━━━━━━━━━━━━━━━━ TOOLBAR ━━━━━━━━━━━━━━━━━━━━ */
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 12px 16px;
+    }
+    .search-wrap {
+      flex: 1;
+      min-width: 200px;
+      position: relative;
+    }
+    .search-icon {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 14px;
+      pointer-events: none;
+    }
+    .search-box {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 12px 8px 32px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: var(--font);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-box:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,212,255,0.08);
+    }
+    .search-box::placeholder { color: var(--muted); }
+
+    .sep { width: 1px; height: 28px; background: var(--border); flex-shrink: 0; }
+
+    select.filter-select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 10px;
+      color: var(--text);
+      font-size: 12px;
+      font-family: var(--font);
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    select.filter-select:focus { border-color: var(--accent); }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+    .btn-export {
+      background: var(--surface2);
+      color: var(--text2);
+      border: 1px solid var(--border2);
+    }
+    .btn-export:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-add {
+      background: linear-gradient(135deg, #00b8d9, #39ff87);
+      color: #000;
+      font-weight: 700;
+      box-shadow: 0 0 16px rgba(0,212,255,0.25);
+    }
+    .btn-add:hover { box-shadow: 0 0 24px rgba(0,212,255,0.4); transform: translateY(-1px); }
+    .btn-clear {
+      background: none;
+      color: var(--muted);
+      border: 1px solid transparent;
+      padding: 8px 10px;
+    }
+    .btn-clear:hover { color: var(--danger); border-color: var(--danger); }
+
+    /* ━━━━━━━━━━━━━━━━━━━━ TABLE ━━━━━━━━━━━━━━━━━━━━ */
+    .table-container {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: var(--surface);
+    }
+    .table-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .table-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text2);
+      font-weight: 600;
+    }
+    .result-count { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+    .table-scroll { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead {
+      background: var(--surface3);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    th {
+      padding: 10px 14px;
+      text-align: left;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.15s;
+    }
+    th:hover { color: var(--text2); }
+    th.sorted { color: var(--accent); }
+    th .arrow { margin-left: 4px; opacity: 0.4; font-size: 9px; }
+    th.sorted .arrow { opacity: 1; }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(30,45,74,0.6);
+      transition: background 0.1s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(0,212,255,0.03); }
+    td { padding: 11px 14px; vertical-align: middle; }
+    td.mono { font-family: var(--mono); font-size: 11.5px; }
+
+    /* Row number */
+    .row-num {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      min-width: 28px;
+    }
+
+    /* User chip */
+    .user-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--surface3);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text2);
+    }
+    .user-avatar {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: #000;
+      font-weight: 700;
+    }
+
+    /* Gene name */
+    .gene-name {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--accent);
+      font-family: var(--mono);
+    }
+
+    /* Organism chip */
+    .organism-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--purple-dim);
+      border: 1px solid rgba(167,139,250,0.2);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 11px;
+      color: var(--purple);
+      white-space: nowrap;
+    }
+
+    /* Arch tag */
+    .arch-tag {
+      background: rgba(0,212,255,0.07);
+      border: 1px solid rgba(0,212,255,0.15);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 11px;
+      color: var(--text2);
+      white-space: nowrap;
+      font-family: var(--mono);
+    }
+
+    /* Sequence */
+    .seq-wrap { display: flex; flex-direction: column; gap: 2px; min-width: 160px; }
+    .seq-row { display: flex; align-items: center; gap: 5px; }
+    .seq-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; min-width: 12px; }
+    .seq-val {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text2);
+      cursor: default;
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Edit nt */
+    .nt-pill {
+      background: rgba(255,179,64,0.1);
+      border: 1px solid rgba(255,179,64,0.25);
+      border-radius: 6px;
+      padding: 2px 9px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--warn);
+      white-space: nowrap;
+    }
+
+    /* Status badge */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 11px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .status-worked {
+      background: rgba(57,255,135,0.1);
+      color: var(--accent2);
+      border: 1px solid rgba(57,255,135,0.25);
+    }
+    .status-failed {
+      background: rgba(255,77,109,0.1);
+      color: var(--danger);
+      border: 1px solid rgba(255,77,109,0.25);
+    }
+    .status-partial {
+      background: rgba(255,179,64,0.1);
+      color: var(--warn);
+      border: 1px solid rgba(255,179,64,0.25);
+    }
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-worked .status-dot { background: var(--accent2); box-shadow: 0 0 5px var(--accent2); }
+    .status-failed .status-dot { background: var(--danger); box-shadow: 0 0 5px var(--danger); }
+    .status-partial .status-dot { background: var(--warn); box-shadow: 0 0 5px var(--warn); }
+
+    /* Heteroplasmy */
+    .het-block { min-width: 120px; }
+    .het-row { display: flex; align-items: center; gap: 7px; }
+    .het-num {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      min-width: 42px;
+      text-align: right;
+    }
+    .het-track {
+      flex: 1;
+      height: 5px;
+      background: var(--surface3);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .het-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      box-shadow: 0 0 8px rgba(0,212,255,0.4);
+      transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    /* Notes */
+    .notes-cell {
+      max-width: 200px;
+      color: var(--text2);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: default;
+    }
+
+    /* Actions */
+    .row-actions { display: flex; gap: 4px; }
+    .action-btn {
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: background 0.15s, transform 0.1s;
+      color: var(--muted);
+    }
+    .action-btn:hover { background: var(--surface3); transform: scale(1.1); }
+    .action-btn.delete:hover { background: var(--danger-dim); color: var(--danger); }
+
+    /* ━━━━━━━━━━━━━━━━━━━━ EMPTY STATE ━━━━━━━━━━━━━━━━━━━━ */
+    .empty-state {
+      padding: 80px 20px;
+      text-align: center;
+    }
+    .empty-state .empty-icon {
+      font-size: 56px;
+      margin-bottom: 16px;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .empty-state h3 { font-size: 16px; color: var(--text); margin-bottom: 6px; }
+    .empty-state p { color: var(--muted); font-size: 13px; }
+
+    /* ━━━━━━━━━━━━━━━━━━━━ MODAL ━━━━━━━━━━━━━━━━━━━━ */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(8px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      width: 680px;
+      max-width: 96vw;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 32px;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,255,0.08);
+      animation: modal-in 0.25s cubic-bezier(0.16,1,0.3,1);
+    }
+    @keyframes modal-in {
+      from { opacity: 0; transform: scale(0.95) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .modal-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .modal-title .icon-wrap {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(57,255,135,0.1));
+      border: 1px solid var(--border2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .modal-title h2 { font-size: 16px; font-weight: 700; color: var(--text); }
+    .modal-title p { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .modal-close {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: all 0.15s;
+    }
+    .modal-close:hover { color: var(--danger); border-color: var(--danger); }
+
+    /* Section dividers inside modal */
+    .form-section {
+      margin-bottom: 20px;
+    }
+    .form-section-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .form-section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-grid .full { grid-column: 1 / -1; }
+
+    .form-group label {
+      display: block;
+      color: var(--text2);
+      font-size: 11px;
+      font-weight: 500;
+      margin-bottom: 5px;
+      letter-spacing: 0.2px;
+    }
+    .form-group label .req { color: var(--danger); margin-left: 2px; }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 9px 11px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: var(--font);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none;
+    }
+    .form-group select { cursor: pointer; }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,212,255,0.08);
+    }
+    .form-group input.mono-f { font-family: var(--mono); font-size: 12px; letter-spacing: 0.5px; }
+    .form-group textarea { resize: vertical; min-height: 72px; }
+
+    /* Outcome toggle */
+    .outcome-toggle {
+      display: flex;
+      gap: 8px;
+    }
+    .outcome-btn {
+      flex: 1;
+      padding: 9px 8px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border2);
+      background: var(--surface2);
+      color: var(--text2);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .outcome-btn.active-worked {
+      background: rgba(57,255,135,0.1);
+      border-color: rgba(57,255,135,0.4);
+      color: var(--accent2);
+    }
+    .outcome-btn.active-failed {
+      background: rgba(255,77,109,0.1);
+      border-color: rgba(255,77,109,0.4);
+      color: var(--danger);
+    }
+    .outcome-btn.active-partial {
+      background: rgba(255,179,64,0.1);
+      border-color: rgba(255,179,64,0.4);
+      color: var(--warn);
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .btn-cancel {
+      background: var(--surface2);
+      color: var(--text2);
+      border: 1px solid var(--border2);
+      padding: 10px 20px;
+    }
+    .btn-cancel:hover { border-color: var(--muted); color: var(--text); }
+    .btn-save {
+      background: linear-gradient(135deg, #00b8d9, #39ff87);
+      color: #000;
+      font-weight: 700;
+      padding: 10px 24px;
+      box-shadow: 0 0 16px rgba(0,212,255,0.25);
+    }
+    .btn-save:hover { box-shadow: 0 0 28px rgba(0,212,255,0.4); transform: translateY(-1px); }
+
+    /* ━━━━━━━━━━━━━━━━━━━━ FOOTER ━━━━━━━━━━━━━━━━━━━━ */
+    .site-footer {
+      position: relative;
+      z-index: 5;
+      border-top: 1px solid var(--border);
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: rgba(5,7,15,0.8);
+    }
+    .footer-left { display: flex; align-items: center; gap: 10px; }
+    .footer-brand {
+      font-weight: 800;
+      font-size: 12px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .footer-sep { color: var(--muted); }
+    .footer-meta { font-size: 11px; color: var(--muted); }
+    .footer-right { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .footer-right a { color: var(--text2); text-decoration: none; }
+    .footer-right a:hover { color: var(--accent); }
+
+    /* ━━━━━━━━━━━━━━━━━━━━ RESPONSIVE ━━━━━━━━━━━━━━━━━━━━ */
+    @media (max-width: 700px) {
+      header, .hero-band, main, .site-footer { padding-left: 16px; padding-right: 16px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-grid .full { grid-column: 1; }
+      .hero-inner { gap: 10px; }
+      .stat-card { min-width: 100px; padding: 14px 12px; }
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+  </style>
+</head>
+<body>
+
+<!-- Animated background -->
+<div class="bg-layer">
+  <div class="bg-orb orb1"></div>
+  <div class="bg-orb orb2"></div>
+  <div class="bg-orb orb3"></div>
+</div>
+<div class="bg-grid"></div>
+
+<!-- ━━━ HEADER ━━━ -->
+<header>
+  <div class="header-inner">
+    <div class="logo-block">
+      <div class="mito-icon">⚡</div>
+      <div class="brand">
+        <h1>MitoBEAM</h1>
+        <div class="tagline">Mitochondrial Base Editor Activity Map<span>·</span>Sabharwal Lab<span>·</span>UT Austin</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="entry-counter">
+        <div class="dot"></div>
+        <span>Constructs: <strong id="entry-count">0</strong></span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ━━━ STATS HERO ━━━ -->
+<div class="hero-band">
+  <div class="hero-inner">
+    <div class="stat-card total">
+      <div class="icon">🧬</div>
+      <div class="num" id="stat-total">0</div>
+      <div class="label">Total Constructs</div>
+      <div class="sub">all entries logged</div>
+    </div>
+    <div class="stat-card worked">
+      <div class="icon">✅</div>
+      <div class="num" id="stat-worked">0</div>
+      <div class="label">Worked</div>
+      <div class="sub">confirmed editors</div>
+    </div>
+    <div class="stat-card failed">
+      <div class="icon">❌</div>
+      <div class="num" id="stat-failed">0</div>
+      <div class="label">Not Worked</div>
+      <div class="sub">null results</div>
+    </div>
+    <div class="stat-card partial">
+      <div class="icon">⚠️</div>
+      <div class="num" id="stat-partial">0</div>
+      <div class="label">Partial</div>
+      <div class="sub">low / inconsistent</div>
+    </div>
+    <div class="stat-card rate">
+      <div class="icon">📡</div>
+      <div class="num" id="stat-rate">—</div>
+      <div class="label">Success Rate</div>
+      <div class="sub">worked / total</div>
+    </div>
+  </div>
+</div>
+
+<!-- ━━━ MAIN ━━━ -->
+<main>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-box" type="text" id="search-input" placeholder="Search gene, user, organism, sequence, notes…" oninput="renderTable()" />
+    </div>
+    <div class="sep"></div>
+    <select class="filter-select" id="filter-status" onchange="renderTable()">
+      <option value="">All Outcomes</option>
+      <option value="Worked">✅ Worked</option>
+      <option value="Not Worked">❌ Not Worked</option>
+      <option value="Partial">⚠️ Partial</option>
+    </select>
+    <select class="filter-select" id="filter-gene" onchange="renderTable()">
+      <option value="">All Genes</option>
+    </select>
+    <select class="filter-select" id="filter-organism" onchange="renderTable()">
+      <option value="">All Organisms</option>
+    </select>
+    <div class="sep"></div>
+    <button class="btn btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+    <button class="btn btn-add" onclick="openModal()">＋ Add Entry</button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-container">
+    <div class="table-header-bar">
+      <div class="table-title">⚡ BEAM Registry</div>
+      <div class="result-count" id="result-count">— entries</div>
+    </div>
+    <div class="table-scroll">
+      <table id="main-table">
+        <thead>
+          <tr>
+            <th onclick="sortBy('id')">#<span class="arrow">↕</span></th>
+            <th onclick="sortBy('user')">User<span class="arrow">↕</span></th>
+            <th onclick="sortBy('gene')">Gene<span class="arrow">↕</span></th>
+            <th onclick="sortBy('organism')">Organism<span class="arrow">↕</span></th>
+            <th onclick="sortBy('arch')">Architecture<span class="arrow">↕</span></th>
+            <th>TALE Arms (L / R)</th>
+            <th onclick="sortBy('window')">Edit Window<span class="arrow">↕</span></th>
+            <th onclick="sortBy('nt')">Nt Edited<span class="arrow">↕</span></th>
+            <th onclick="sortBy('status')">Outcome<span class="arrow">↕</span></th>
+            <th onclick="sortBy('het')">Heteroplasmy<span class="arrow">↕</span></th>
+            <th>Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="empty-state" style="display:none">
+      <div class="empty-icon">🔬</div>
+      <h3>No constructs found</h3>
+      <p>Add your first mitoTALE BE entry or adjust your filters</p>
+    </div>
+  </div>
+
+</main>
+
+<!-- ━━━ FOOTER ━━━ -->
+<footer class="site-footer">
+  <div class="footer-left">
+    <span class="footer-brand">MitoBEAM</span>
+    <span class="footer-sep">·</span>
+    <span class="footer-meta">Mitochondrial Base Editor Activity Map · v2.0</span>
+  </div>
+  <div class="footer-right">
+    Sabharwal Lab · Dell Pediatric Research Institute · UT Austin
+    <span>·</span> Built by Mendel 🧬
+  </div>
+</footer>
+
+<!-- ━━━ MODAL ━━━ -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">
+        <div class="icon-wrap">⚡</div>
+        <div>
+          <h2>New BEAM Entry</h2>
+          <p>Log a mitoTALE base editor construct</p>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <!-- Section: Identity -->
+    <div class="form-section">
+      <div class="form-section-label">📋 Identity</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>User Name</label>
+          <input type="text" id="f-user" placeholder="e.g. Ankit" />
+        </div>
+        <div class="form-group">
+          <label>Gene Name <span class="req">*</span></label>
+          <input type="text" id="f-gene" placeholder="e.g. mt-nd1, mt-cyb" />
+        </div>
+        <div class="form-group">
+          <label>Organism</label>
+          <input type="text" id="f-organism" placeholder="e.g. Zebrafish, Human, Mouse, C. elegans" />
+        </div>
+        <div class="form-group">
+          <label>Architecture</label>
+          <input type="text" id="f-arch" placeholder="e.g. mitoABE8e, DddA-TALE-UGI" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: TALE Design -->
+    <div class="form-section">
+      <div class="form-section-label">🧬 TALE Design</div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>TALE Left Arm (5′→3′)</label>
+          <input type="text" id="f-left" class="mono-f" placeholder="e.g. TTTCAAGGAGTTGTCAGT…" />
+        </div>
+        <div class="form-group full">
+          <label>TALE Right Arm (5′→3′)</label>
+          <input type="text" id="f-right" class="mono-f" placeholder="e.g. GCTTAAACGTTTCCAGTG…" />
+        </div>
+        <div class="form-group">
+          <label>Editing Window (e.g. 4–8)</label>
+          <input type="text" id="f-window" placeholder="e.g. 4–8" />
+        </div>
+        <div class="form-group">
+          <label>Nucleotide Edited (e.g. C5→T)</label>
+          <input type="text" id="f-nt" placeholder="e.g. C5→T, A6→G" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Results -->
+    <div class="form-section">
+      <div class="form-section-label">📊 Results</div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Outcome</label>
+          <div class="outcome-toggle">
+            <button class="outcome-btn" id="btn-worked" onclick="setOutcome('Worked')">✅ Worked</button>
+            <button class="outcome-btn" id="btn-failed" onclick="setOutcome('Not Worked')">❌ Not Worked</button>
+            <button class="outcome-btn" id="btn-partial" onclick="setOutcome('Partial')">⚠️ Partial</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Heteroplasmy Shift (%)</label>
+          <input type="number" id="f-het" min="0" max="100" step="0.1" placeholder="e.g. 42.5" />
+        </div>
+        <div class="form-group full">
+          <label>Notes / Context</label>
+          <textarea id="f-notes" placeholder="Cell line, injection stage, ONT confirmation, caveats, citations…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-save" onclick="addEntry()">⚡ Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ━━━━━━━━━━ State ━━━━━━━━━━
+  let entries = JSON.parse(localStorage.getItem('mitobeam-entries') || '[]');
+  let nextId  = entries.length ? Math.max(...entries.map(e => e.id)) + 1 : 1;
+  let sortField = 'id', sortAsc = true;
+  let currentOutcome = 'Worked';
+
+  // ━━━━━━━━━━ Seed data ━━━━━━━━━━
+  if (!entries.length) {
+    entries = [
+      {
+        id: 1, user: 'Ankit', gene: 'mt-nd1', organism: 'Zebrafish',
+        arch: 'mitoABE8e-TALE',
+        left: 'TTTCAAGGAGTTGTCAGT', right: 'GCTTAAACGTTTCCAGTG',
+        window: '4–8', nt: 'C5→T', status: 'Worked', het: 42.5,
+        notes: 'Embryo injection, 48 hpf. nd1 m.3796 locus. Confirmed by ONT.'
+      },
+      {
+        id: 2, user: 'Ankit', gene: 'mt-cyb', organism: 'Zebrafish',
+        arch: 'DddA-TALE-UGI',
+        left: 'AAATCGGTTCCAAGATCC', right: 'CGGAATTTGGACCTAGGT',
+        window: '5–9', nt: 'C6→T', status: 'Not Worked', het: null,
+        notes: 'No editing by ONT. TALE may overlap secondary structure.'
+      }
+    ];
+    nextId = 3;
+    save();
+  }
+
+  function save() {
+    localStorage.setItem('mitobeam-entries', JSON.stringify(entries));
+  }
+
+  // ━━━━━━━━━━ Render ━━━━━━━━━━
+  function renderTable() {
+    const q        = document.getElementById('search-input').value.toLowerCase();
+    const fStatus  = document.getElementById('filter-status').value;
+    const fGene    = document.getElementById('filter-gene').value;
+    const fOrg     = document.getElementById('filter-organism').value;
+
+    let filtered = entries.filter(e => {
+      const hay = [e.user, e.gene, e.organism, e.arch, e.left, e.right,
+                   e.window, e.nt, e.status, e.notes].join(' ').toLowerCase();
+      return (!q || hay.includes(q))
+          && (!fStatus || e.status === fStatus)
+          && (!fGene   || e.gene === fGene)
+          && (!fOrg    || e.organism === fOrg);
+    });
+
+    filtered.sort((a, b) => {
+      let va = a[sortField] ?? '', vb = b[sortField] ?? '';
+      if (typeof va === 'string') va = va.toLowerCase();
+      if (typeof vb === 'string') vb = vb.toLowerCase();
+      if (va < vb) return sortAsc ? -1 : 1;
+      if (va > vb) return sortAsc ?  1 : -1;
+      return 0;
+    });
+
+    const tbody = document.getElementById('table-body');
+    const empty = document.getElementById('empty-state');
+
+    document.getElementById('result-count').textContent =
+      filtered.length + (filtered.length === 1 ? ' entry' : ' entries');
+
+    if (!filtered.length) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+    } else {
+      empty.style.display = 'none';
+      tbody.innerHTML = filtered.map(rowHTML).join('');
+    }
+
+    // Stats
+    const total   = entries.length;
+    const worked  = entries.filter(e => e.status === 'Worked').length;
+    const failed  = entries.filter(e => e.status === 'Not Worked').length;
+    const partial = entries.filter(e => e.status === 'Partial').length;
+    const rate    = total ? Math.round((worked / total) * 100) + '%' : '—';
+
+    document.getElementById('stat-total').textContent   = total;
+    document.getElementById('stat-worked').textContent  = worked;
+    document.getElementById('stat-failed').textContent  = failed;
+    document.getElementById('stat-partial').textContent = partial;
+    document.getElementById('stat-rate').textContent    = rate;
+    document.getElementById('entry-count').textContent  = total;
+
+    // Repopulate filters
+    const genes = [...new Set(entries.map(e => e.gene).filter(Boolean))].sort();
+    const orgs  = [...new Set(entries.map(e => e.organism).filter(Boolean))].sort();
+
+    const gSel = document.getElementById('filter-gene');
+    const oSel = document.getElementById('filter-organism');
+    const curG = gSel.value, curO = oSel.value;
+
+    gSel.innerHTML = '<option value="">All Genes</option>' +
+      genes.map(g => `<option value="${g}" ${g===curG?'selected':''}>${g}</option>`).join('');
+    oSel.innerHTML = '<option value="">All Organisms</option>' +
+      orgs.map(o => `<option value="${o}" ${o===curO?'selected':''}>${o}</option>`).join('');
+  }
+
+  const ORG_EMOJI = {
+    zebrafish: '🐟', human: '🧑', mouse: '🐭', 'c. elegans': '🪱',
+    yeast: '🍄', fly: '🪰', rat: '🐀', 'cell line': '🔬'
+  };
+  function orgEmoji(org) {
+    if (!org) return '🔬';
+    return ORG_EMOJI[org.toLowerCase()] || '🧪';
+  }
+
+  function rowHTML(e) {
+    const sc = e.status === 'Worked' ? 'status-worked' : e.status === 'Partial' ? 'status-partial' : 'status-failed';
+    const het = (e.het != null && e.het !== '') ? parseFloat(e.het) : null;
+    const hetHTML = het != null
+      ? `<div class="het-row"><div class="het-num">${het}%</div>
+         <div class="het-track"><div class="het-fill" style="width:${het}%"></div></div></div>`
+      : `<span style="color:var(--muted);font-size:12px">—</span>`;
+
+    const tl = e.left  ? (e.left.length  > 16 ? `<span title="${e.left}">${e.left.slice(0,14)}…</span>`   : e.left)  : '—';
+    const tr_ = e.right ? (e.right.length > 16 ? `<span title="${e.right}">${e.right.slice(0,14)}…</span>` : e.right) : '—';
+
+    const initials = (e.user || '?').slice(0,2).toUpperCase();
+    const notesTxt = (e.notes || '');
+    const notesDisplay = notesTxt.length > 44 ? notesTxt.slice(0,42) + '…' : notesTxt;
+
+    return `<tr>
+      <td class="row-num">${e.id}</td>
+      <td><div class="user-chip"><div class="user-avatar">${initials}</div>${e.user || '—'}</div></td>
+      <td><span class="gene-name">${e.gene || '—'}</span></td>
+      <td><span class="organism-chip">${orgEmoji(e.organism)} ${e.organism || '—'}</span></td>
+      <td><span class="arch-tag">${e.arch || '—'}</span></td>
+      <td class="mono">
+        <div class="seq-wrap">
+          <div class="seq-row"><span class="seq-label">L</span><span class="seq-val" title="${e.left||''}">${tl}</span></div>
+          <div class="seq-row"><span class="seq-label">R</span><span class="seq-val" title="${e.right||''}">${tr_}</span></div>
+        </div>
+      </td>
+      <td class="mono" style="color:var(--text2)">${e.window || '—'}</td>
+      <td><span class="nt-pill">${e.nt || '—'}</span></td>
+      <td><span class="status-badge ${sc}"><span class="status-dot"></span>${e.status}</span></td>
+      <td class="het-block">${hetHTML}</td>
+      <td><div class="notes-cell" title="${notesTxt.replace(/"/g,"'")}">${notesDisplay || '<span style="color:var(--muted)">—</span>'}</div></td>
+      <td><div class="row-actions">
+        <button class="action-btn delete" onclick="deleteEntry(${e.id})" title="Delete">🗑</button>
+      </div></td>
+    </tr>`;
+  }
+
+  // ━━━━━━━━━━ Sort ━━━━━━━━━━
+  function sortBy(field) {
+    if (sortField === field) sortAsc = !sortAsc;
+    else { sortField = field; sortAsc = true; }
+    renderTable();
+  }
+
+  // ━━━━━━━━━━ Modal ━━━━━━━━━━
+  function openModal() {
+    setOutcome('Worked');
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+    ['f-user','f-gene','f-organism','f-arch','f-left','f-right','f-window','f-nt','f-het','f-notes']
+      .forEach(id => { document.getElementById(id).value = ''; });
+    setOutcome('Worked');
+  }
+  document.getElementById('modal').addEventListener('click', e => {
+    if (e.target.id === 'modal') closeModal();
+  });
+
+  function setOutcome(val) {
+    currentOutcome = val;
+    ['btn-worked','btn-failed','btn-partial'].forEach(id => {
+      document.getElementById(id).className = 'outcome-btn';
+    });
+    if (val === 'Worked')     document.getElementById('btn-worked').className  = 'outcome-btn active-worked';
+    if (val === 'Not Worked') document.getElementById('btn-failed').className  = 'outcome-btn active-failed';
+    if (val === 'Partial')    document.getElementById('btn-partial').className = 'outcome-btn active-partial';
+  }
+
+  function addEntry() {
+    const gene = document.getElementById('f-gene').value.trim();
+    if (!gene) { alert('Gene name is required.'); return; }
+    const entry = {
+      id:       nextId++,
+      user:     document.getElementById('f-user').value.trim(),
+      gene,
+      organism: document.getElementById('f-organism').value.trim(),
+      arch:     document.getElementById('f-arch').value.trim(),
+      left:     document.getElementById('f-left').value.trim().toUpperCase(),
+      right:    document.getElementById('f-right').value.trim().toUpperCase(),
+      window:   document.getElementById('f-window').value.trim(),
+      nt:       document.getElementById('f-nt').value.trim(),
+      status:   currentOutcome,
+      het:      document.getElementById('f-het').value !== '' ? parseFloat(document.getElementById('f-het').value) : null,
+      notes:    document.getElementById('f-notes').value.trim()
+    };
+    entries.push(entry);
+    save();
+    closeModal();
+    renderTable();
+  }
+
+  function deleteEntry(id) {
+    if (!confirm('Delete this entry?')) return;
+    entries = entries.filter(e => e.id !== id);
+    save();
+    renderTable();
+  }
+
+  // ━━━━━━━━━━ Export ━━━━━━━━━━
+  function exportCSV() {
+    const headers = ['ID','User','Gene','Organism','Architecture','TALE Left','TALE Right',
+                     'Edit Window','Nt Edited','Outcome','Heteroplasmy (%)','Notes'];
+    const rows = entries.map(e => [
+      e.id, e.user, e.gene, e.organism, e.arch, e.left, e.right,
+      e.window, e.nt, e.status, e.het ?? '', e.notes
+    ].map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(','));
+    const csv  = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = 'mitobeam-export.csv';
+    a.click();
+  }
+
+  // ━━━━━━━━━━ Init ━━━━━━━━━━
+  renderTable();
+</script>
+</body>
+</html>
